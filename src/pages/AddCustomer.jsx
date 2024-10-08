@@ -62,6 +62,10 @@ export const AddCustomer = () => {
 
 
   const handleSubmit = async () => {
+    if (!isFormValid()) {
+      toast.error('Please fill all the fields')
+      return
+    }
     if (isUpdateModeEnabled) {
       dispatch(updateCustomer(newCustomer))
     }
@@ -78,6 +82,10 @@ export const AddCustomer = () => {
     });
     dispatch(emptyErrors());
   };
+
+  const isFormValid = () => {
+    return newCustomer.firstName && newCustomer.lastName && newCustomer.email && newCustomer.phone
+  }
 
 
   return (
@@ -103,7 +111,7 @@ export const AddCustomer = () => {
           </Form.Group>
           <Form.Group className="mb-3">
             <Form.Label className='fw-medium'>Phone Number</Form.Label>
-            <Form.Control type="email" placeholder="+971123456789" name="phone" value={newCustomer.phone} onChange={handleInputChange} />
+            <Form.Control type="text" placeholder="+971123456789" name="phone" value={newCustomer.phone} onChange={handleInputChange} />
           </Form.Group>
           <div className="d-flex justify-content-end">
             <Button onClick={handleSubmit} type='button' variant='warning'>{isUpdateModeEnabled ? 'Update Customer' : 'Add Customer'}</Button>
