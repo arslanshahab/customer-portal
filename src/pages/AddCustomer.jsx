@@ -3,9 +3,10 @@ import { Container, Form } from 'react-bootstrap'
 import { useParams } from 'react-router-dom'
 import Button from 'react-bootstrap/Button';
 import { Layout } from '../layouts/Layout'
-import axios from 'axios';
 import { toast, Toaster } from 'sonner';
-
+import { httpService } from '../services/httpService';
+import { useDispatch, useSelector } from 'react-redux';
+import { addCustomer, emptyErrors, updateCustomer } from '../redux/slices/customerSlice';
 
 const initialData = {
   firstName: '',
@@ -16,6 +17,9 @@ const initialData = {
 
 export const AddCustomer = () => {
   const params = useParams();
+  const dispatch = useDispatch();
+  const { errors: _errors } = useSelector((state) => state.customers);
+
   const [isUpdateModeEnabled, setIsUpdateModeEnabled] = useState(false)
   const [newCustomer, setNewCustomer] = useState({
     ...initialData
@@ -26,12 +30,21 @@ export const AddCustomer = () => {
     if (params?.id) {
       setIsUpdateModeEnabled(true)
       fetchCustomer()
+    } else {
+      setNewCustomer({ ...initialData })
+      setIsUpdateModeEnabled(false)
     }
   }, [params])
 
+  useEffect(() => {
+    if (_errors) {
+      showErrorToasts(_errors)
+    }
+  }, [_errors])
+
   const fetchCustomer = async () => {
     try {
-      const response = await axios.get(`http://localhost:5296/api/Customer/${params.id}`);
+      const response = await httpService.get(`/customer/${params.id}`);
       setNewCustomer(response.data)
     } catch (error) {
       console.log('Error: ', error);
@@ -47,44 +60,13 @@ export const AddCustomer = () => {
     setNewCustomer(updatedCustomer)
   }
 
-  // const renderToast = (errorMessage) => {
-  //   return (
-  //     toast.error(errorMessage)
-  //   )
-  // }
 
-  const addCustomer = async () => {
-    try {
-      const response = await axios.post('http://localhost:5296/api/Customer', newCustomer);
-      toast.success('Customer added successfully')
-      console.log(response.data);
-    } catch (error) {
-      const errorData = error?.response?.data?.errors;
-      console.log('Error: ', errorData);
-      setErrors(errorData);
-      if (errorData) showErrorToasts(errorData);
-    }
-  }
-
-  const updateCustomer = async () => {
-    try {
-      const response = await axios.put(`http://localhost:5296/api/Customer/${params.id}`, newCustomer);
-      toast.success('Customer updated successfully')
-      console.log(response.data);
-    } catch (error) {
-      const errorData = error?.response?.data?.errors;
-      console.log('Error: ', errorData);
-      setErrors(errorData);
-      if (errorData) showErrorToasts(errorData);
-    }
-  }
-
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (isUpdateModeEnabled) {
-      updateCustomer()
+      dispatch(updateCustomer(newCustomer))
     }
     else {
-      addCustomer()
+      dispatch(addCustomer(newCustomer))
     }
   }
 
@@ -94,27 +76,8 @@ export const AddCustomer = () => {
         toast.error(`${field}: ${message}`);
       });
     });
+    dispatch(emptyErrors());
   };
-
-  // function ErrorList({ errors }) {
-  //   return (
-  //     <div className='py-4'>
-  //       <h6 className='mb-2'>Please resolve the following errors:</h6>
-  //       <ul>
-  //         {Object.entries(errors).map(([field, messages]) => (
-  //           <li key={field}>
-  //             <b>{field}:</b>
-  //             <ul>
-  //               {messages.map((message, index) => (
-  //                 <li key={index} className='text-danger'>{message}</li>
-  //               ))}
-  //             </ul>
-  //           </li>
-  //         ))}
-  //       </ul>
-  //     </div>
-  //   );
-  // }
 
 
   return (
@@ -125,28 +88,27 @@ export const AddCustomer = () => {
           {isUpdateModeEnabled ? 'Update' : 'Add'} Customer
         </h2>
 
-        <Form className='w-50 shadow-sm rounded-3 p-4'>
+        <Form className='w-50 shadow-sm rounded-3 p-4 bg-white'>
           <Form.Group className="mb-3">
-            <Form.Label>First Name</Form.Label>
+            <Form.Label className='fw-medium'>First Name</Form.Label>
             <Form.Control type='text' placeholder='Hanzala' name="firstName" value={newCustomer.firstName} onChange={handleInputChange} />
           </Form.Group>
           <Form.Group className="mb-3">
-            <Form.Label>Last Name</Form.Label>
+            <Form.Label className='fw-medium'>Last Name</Form.Label>
             <Form.Control type='text' placeholder='Sultan' name="lastName" value={newCustomer.lastName} onChange={handleInputChange} />
           </Form.Group>
           <Form.Group className="mb-3">
-            <Form.Label>Email address</Form.Label>
+            <Form.Label className='fw-medium'>Email address</Form.Label>
             <Form.Control type="email" placeholder="name@example.com" name="email" value={newCustomer.email} onChange={handleInputChange} />
           </Form.Group>
           <Form.Group className="mb-3">
-            <Form.Label>Phone Number</Form.Label>
+            <Form.Label className='fw-medium'>Phone Number</Form.Label>
             <Form.Control type="email" placeholder="+971123456789" name="phone" value={newCustomer.phone} onChange={handleInputChange} />
           </Form.Group>
           <div className="d-flex justify-content-end">
-            <Button onClick={handleSubmit} type='button'>{isUpdateModeEnabled ? 'Update' : 'Add'}</Button>
+            <Button onClick={handleSubmit} type='button' variant='warning'>{isUpdateModeEnabled ? 'Update Customer' : 'Add Customer'}</Button>
           </div>
         </Form>
-        {/* {errors && <ErrorList errors={errors} />} */}
       </Container>
     </Layout>
   )

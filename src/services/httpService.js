@@ -1,8 +1,7 @@
 import axios from "axios";
-
-const BASE_URL = "http://localhost:5296/api";
+import { BASE_API_URL } from "../constants";
 
 export const httpService = axios.create({
-    baseURL: BASE_URL,
+    baseURL: BASE_API_URL,
     timeout: 60000,
 });

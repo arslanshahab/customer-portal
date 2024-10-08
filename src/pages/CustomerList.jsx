@@ -1,50 +1,37 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { Layout } from '../layouts/Layout'
-import axios from 'axios';
 import Table from 'react-bootstrap/Table';
-import { Container } from 'react-bootstrap';
+import { Button, Container } from 'react-bootstrap';
 import Pagination from 'react-bootstrap/Pagination';
 import Spinner from 'react-bootstrap/Spinner';
 import Form from 'react-bootstrap/Form';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchCustomers } from '../redux/slices/customerSlice';
+import { deleteCustomer, fetchCustomers } from '../redux/slices/customerSlice';
+import { FaEye, FaPencil, FaTrash } from 'react-icons/fa6';
+import { useNavigate } from 'react-router-dom';
+import Modal from 'react-bootstrap/Modal';
+import { DeleteConfirmModal } from '../components/DeleteConfirmModal';
+import { ViewCustomerModal } from '../components/ViewCustomerModal';
 
-const PAGINATION_SIZE = 3;
-const BASE_URL = "http://localhost:5296";
 
 export const CustomerList = () => {
   const dispatch = useDispatch();
-  // const { customers, loading, error } = useSelector((state) => state.customers);
+  const navigate = useNavigate();
+  const { customers, loading, error, totalPages } = useSelector((state) => state.customers);
 
-
-  const [customers, setCustomers] = useState([]);
   const [isFetching, setIsFetching] = useState(false)
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(0);
   const [searchInput, setSearchInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showViewModal, setShowViewModal] = useState(false);
+  const [activeCustomerId, setActiveCustomerId] = useState(null);
   const searchTimeoutRef = useRef(null);
 
   useEffect(() => {
-    fetchCustomers()
-  }, [currentPage, searchQuery])
+    dispatch(fetchCustomers({ page: currentPage, search: searchQuery }));
+  }, [dispatch, currentPage, searchQuery]);
 
-  // useEffect(() => {
-  //   dispatch(fetchCustomers({ page: currentPage, search: searchQuery }));
-  // }, [dispatch, currentPage, searchQuery]);
-
-  async function fetchCustomers() {
-    try {
-      setIsFetching(true)
-      const { data } = await axios.get(`${BASE_URL}/api/Customer?page=${currentPage}&pageSize=${PAGINATION_SIZE}&search=${searchQuery}`)
-      setCustomers(data?.customers);
-      setTotalPages(data?.totalPages)
-    } catch (error) {
-      console.log("ERROR: ", error);
-    } finally {
-      setIsFetching(false)
-    }
-  }
 
   const handlePaginationClick = (pageNumber) => {
     setCurrentPage(pageNumber)
@@ -78,11 +65,40 @@ export const CustomerList = () => {
     }, 500);
   }
 
+  const handleViewClick = (id) => {
+    setActiveCustomerId(id);
+    setShowViewModal(true);
+  }
+
+  const handleEditClick = (id) => {
+    navigate(`/customers/add/${id}`);
+  }
+
+  const handleDeleteClick = (id) => {
+    setActiveCustomerId(id);
+    setShowDeleteModal(true);
+  }
+
+  const handleUserDeleteConfirm = () => {
+    dispatch(deleteCustomer(activeCustomerId));
+    setShowDeleteModal(false);
+  }
+
+  const hideDeleteModal = () => {
+    setShowDeleteModal(false);
+  }
+
+  const hideViewModal = () => {
+    setShowViewModal(false);
+  }
+
+
   return (
     <Layout>
       <Container>
         <h2 className='my-4'>Customers List</h2>
-        <div className="d-flex justify-content-end align-items-center gap-4 mb-4">
+        <div className="d-flex justify-content-between align-items-center gap-4 mb-4">
+          <Button onClick={() => navigate('/customers/add')} variant='warning'>Add Customer</Button>
           <Form className='d-inline-block'>
             <Form.Control type="text" placeholder="Search..." onChange={handleSearchChange} value={searchInput} />
           </Form>
@@ -104,6 +120,7 @@ export const CustomerList = () => {
                     <th>Last Name</th>
                     <th>Email</th>
                     <th>Phone Number</th>
+                    <th></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -115,14 +132,31 @@ export const CustomerList = () => {
                         <td>{customer.lastName}</td>
                         <td>{customer.email}</td>
                         <td>{customer.phone}</td>
+                        <td>
+                          <div className='d-flex gap-2'>
+                            <FaEye className='text-secondary' cursor={'pointer'} fontSize={14} onClick={
+                              () => handleViewClick(customer.id)}
+                            />
+                            <FaTrash className='text-danger' cursor={'pointer'} fontSize={14} onClick={
+                              () => handleDeleteClick(customer.id)
+                            } />
+                            <FaPencil className='text-info' cursor={'pointer'} fontSize={14} onClick={
+                              () => handleEditClick(customer.id)
+                            } />
+                          </div>
+                        </td>
                       </tr>
                     )
                   }
                 </tbody>
               </Table>
-              <Pagination>{renderPagination()}</Pagination>
+              {totalPages > 1 &&
+                <Pagination size='sm'>{renderPagination()}</Pagination>
+              }
             </>
           )}
+        <DeleteConfirmModal show={showDeleteModal} onDeleteConfirm={handleUserDeleteConfirm} onModalClose={hideDeleteModal} />
+        <ViewCustomerModal show={showViewModal} customerId={activeCustomerId} onModalClose={hideViewModal} />
       </Container>
     </Layout>
   )
